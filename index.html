@@ -5,7 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>BotArena</title>
 
+<!-- Telegram WebApp -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <style>
@@ -56,18 +58,21 @@ button {
   background: linear-gradient(90deg,#22c55e,#16a34a);
   border: none;
   color: #022c22;
-  padding: 8px 14px;
+  padding: 6px 12px;
   border-radius: 999px;
   font-weight: bold;
+  cursor: pointer;
 }
 button:disabled {
   background: #334155;
   color: #94a3b8;
+  cursor: default;
 }
 .footer {
   text-align: center;
   font-size: 12px;
   color: #64748b;
+  margin-top: 20px;
 }
 </style>
 </head>
@@ -97,18 +102,15 @@ button:disabled {
 </div>
 
 <script>
-/* ================= CONFIG ================= */
+/* ========== CONFIG ========== */
 const SUPABASE_URL = "https://jbbgsqvlnlaiabzhrmfp.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_eld7FfHsQi48L9xS513QRQ_mi3iNmBQ";
-/* ========================================= */
+/* ============================ */
 
 const tg = window.Telegram.WebApp;
 tg.ready();
 
-const supabase = supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 const telegramId = tg.initDataUnsafe?.user?.id || 0;
 const username = tg.initDataUnsafe?.user?.username || "guest";
@@ -153,6 +155,16 @@ async function loadTasks() {
   list.innerHTML = "";
 
   for (const t of tasks) {
+    // Check if user already did this task
+    const { data: userTask } = await supabase
+      .from("user_tasks")
+      .select("*")
+      .eq("telegram_id", telegramId)
+      .eq("task_id", t.id)
+      .single();
+
+    let buttonLabel = userTask?.is_done ? "Claim" : "Open Task";
+
     const row = document.createElement("div");
     row.className = "task";
 
@@ -161,32 +173,52 @@ async function loadTasks() {
         <div>${t.task_name}</div>
         <small>+${t.reward} pts</small>
       </div>
-      <button onclick="doTask(${t.id}, ${t.reward}, '${t.url}')">
-        Go
+      <button ${userTask?.claimed ? "disabled" : ""} onclick="handleTask(this, ${t.id}, ${t.reward}, '${t.url}', ${userTask?.is_done || false})">
+        ${buttonLabel}
       </button>
     `;
     list.appendChild(row);
   }
 }
 
-/* ===== TASK ACTION ===== */
-async function doTask(taskId, reward, url) {
-  if (url) window.open(url, "_blank");
+/* ===== HANDLE TASK ===== */
+async function handleTask(btn, taskId, reward, url, isDone) {
+  if (!isDone) {
+    // Open the URL
+    if (url) window.open(url, "_blank");
+    // Mark task as done
+    await supabase.from("user_tasks").upsert({
+      telegram_id: telegramId,
+      task_id: taskId,
+      is_done: true,
+      claimed: false
+    });
+    btn.innerText = "Claim";
+  } else {
+    // Claim points
+    const { data: user } = await supabase
+      .from("botarena")
+      .select("points")
+      .eq("telegram_id", telegramId)
+      .single();
 
-  const { data: user } = await supabase
-    .from("botarena")
-    .select("points")
-    .eq("telegram_id", telegramId)
-    .single();
+    const newPoints = (user?.points || 0) + reward;
 
-  const newPoints = (user?.points || 0) + reward;
+    await supabase
+      .from("botarena")
+      .update({ points: newPoints })
+      .eq("telegram_id", telegramId);
 
-  await supabase
-    .from("botarena")
-    .update({ points: newPoints })
-    .eq("telegram_id", telegramId);
+    // Mark task as claimed
+    await supabase
+      .from("user_tasks")
+      .update({ claimed: true })
+      .eq("telegram_id", telegramId)
+      .eq("task_id", taskId);
 
-  document.getElementById("points").innerText = newPoints;
+    document.getElementById("points").innerText = newPoints;
+    btn.disabled = true;
+  }
 }
 
 /* ===== INIT ===== */
