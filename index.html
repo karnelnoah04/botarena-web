@@ -4,12 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>BotArena</title>
-
-<!-- Telegram WebApp -->
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<!-- Supabase -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
 body {
   margin: 0;
@@ -58,7 +54,7 @@ button {
   background: linear-gradient(90deg,#22c55e,#16a34a);
   border: none;
   color: #022c22;
-  padding: 6px 12px;
+  padding: 8px 14px;
   border-radius: 999px;
   font-weight: bold;
   cursor: pointer;
@@ -66,20 +62,17 @@ button {
 button:disabled {
   background: #334155;
   color: #94a3b8;
-  cursor: default;
 }
 .footer {
   text-align: center;
   font-size: 12px;
   color: #64748b;
-  margin-top: 20px;
+  margin-top: 16px;
 }
 </style>
 </head>
-
 <body>
 <div class="app">
-
   <div class="header">
     <div class="title">BotArena</div>
     <div id="username">@user</div>
@@ -95,26 +88,20 @@ button:disabled {
     <div id="taskList">Loading...</div>
   </div>
 
-  <div class="footer">
-    Powered by BotArena
-  </div>
-
+  <div class="footer">Powered by BotArena</div>
 </div>
 
 <script>
-/* ========== CONFIG ========== */
+/* ===== CONFIG ===== */
 const SUPABASE_URL = "https://jbbgsqvlnlaiabzhrmfp.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_eld7FfHsQi48L9xS513QRQ_mi3iNmBQ";
-/* ============================ */
 
 const tg = window.Telegram.WebApp;
 tg.ready();
 
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 const telegramId = tg.initDataUnsafe?.user?.id || 0;
 const username = tg.initDataUnsafe?.user?.username || "guest";
-
 document.getElementById("username").innerText = "@" + username;
 
 /* ===== LOAD USER ===== */
@@ -153,75 +140,49 @@ async function loadTasks() {
   }
 
   list.innerHTML = "";
-
   for (const t of tasks) {
-    // Check if user already did this task
-    const { data: userTask } = await supabase
-      .from("user_tasks")
-      .select("*")
-      .eq("telegram_id", telegramId)
-      .eq("task_id", t.id)
-      .single();
-
-    let buttonLabel = userTask?.is_done ? "Claim" : "Open Task";
-
     const row = document.createElement("div");
     row.className = "task";
+    row.id = "task-" + t.id;
 
     row.innerHTML = `
       <div>
         <div>${t.task_name}</div>
-        <small>+${t.reward} pts</small>
+        <small>+${t.REWARD} pts</small>
       </div>
-      <button ${userTask?.claimed ? "disabled" : ""} onclick="handleTask(this, ${t.id}, ${t.reward}, '${t.url}', ${userTask?.is_done || false})">
-        ${buttonLabel}
+      <button onclick="doTask(${t.id}, ${t.REWARD}, '${t.url}', this)">
+        Open Task
       </button>
     `;
     list.appendChild(row);
   }
 }
 
-/* ===== HANDLE TASK ===== */
-async function handleTask(btn, taskId, reward, url, isDone) {
-  if (!isDone) {
-    // Open the URL
-    if (url) window.open(url, "_blank");
-    // Mark task as done
-    await supabase.from("user_tasks").upsert({
-      telegram_id: telegramId,
-      task_id: taskId,
-      is_done: true,
-      claimed: false
-    });
-    btn.innerText = "Claim";
-  } else {
-    // Claim points
-    const { data: user } = await supabase
-      .from("botarena")
-      .select("points")
-      .eq("telegram_id", telegramId)
-      .single();
+/* ===== TASK ACTION ===== */
+async function doTask(taskId, reward, url, btn) {
+  if (url) window.open(url, "_blank");
 
-    const newPoints = (user?.points || 0) + reward;
+  // Tambahkan points
+  const { data: user } = await supabase
+    .from("botarena")
+    .select("points")
+    .eq("telegram_id", telegramId)
+    .single();
 
-    await supabase
-      .from("botarena")
-      .update({ points: newPoints })
-      .eq("telegram_id", telegramId);
+  const newPoints = (user?.points || 0) + reward;
 
-    // Mark task as claimed
-    await supabase
-      .from("user_tasks")
-      .update({ claimed: true })
-      .eq("telegram_id", telegramId)
-      .eq("task_id", taskId);
+  await supabase
+    .from("botarena")
+    .update({ points: newPoints })
+    .eq("telegram_id", telegramId);
 
-    document.getElementById("points").innerText = newPoints;
-    btn.disabled = true;
-  }
+  document.getElementById("points").innerText = newPoints;
+
+  // Ganti tombol menjadi Claim
+  btn.innerText = "Claimed";
+  btn.disabled = true;
 }
 
-/* ===== INIT ===== */
 loadUser();
 loadTasks();
 </script>
