@@ -174,7 +174,7 @@ async function loadTasks() {
 }
 
 async function openTask(taskId, url, reward) {
-  window.open(url, "_blank");
+  tg.openLink(url);
 
   await supabase.from("user_tasks").insert({
     telegram_id: telegramId,
