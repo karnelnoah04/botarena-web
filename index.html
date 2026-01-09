@@ -1,190 +1,149 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
 <title>BotArena</title>
-<script src="https://telegram.org/js/telegram-web-app.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <style>
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
-  background: #0f172a;
-  color: #e5e7eb;
+  font-family: Arial, sans-serif;
+  background: #0f0f14;
+  color: #fff;
 }
-.app {
-  max-width: 420px;
-  margin: auto;
-  padding: 16px;
-}
+
 .header {
-  text-align: center;
-  margin-bottom: 20px;
-}
-.title {
-  font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(90deg,#38bdf8,#818cf8);
-  -webkit-background-clip: text;
-  color: transparent;
-}
-.card {
-  background: #020617;
-  border-radius: 16px;
   padding: 16px;
-  margin-bottom: 16px;
-  border: 1px solid #1e293b;
-}
-.points {
-  font-size: 36px;
-  font-weight: bold;
   text-align: center;
-  color: #facc15;
+  font-weight: bold;
+  font-size: 18px;
 }
+
+.coupons {
+  display: flex;
+  justify-content: space-around;
+  background: #1b1b25;
+  margin: 10px;
+  padding: 12px;
+  border-radius: 12px;
+}
+
+.coupon {
+  text-align: center;
+}
+
+.tabs {
+  display: flex;
+  padding: 10px;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px;
+  color: #aaa;
+}
+
+.tab.active {
+  color: #fff;
+  border-bottom: 2px solid #7c4dff;
+}
+
 .task {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid #1e293b;
+  justify-content: space-between;
+  padding: 14px;
+  border-bottom: 1px solid #222;
 }
-.task:last-child { border-bottom: none; }
-button {
-  background: linear-gradient(90deg,#22c55e,#16a34a);
+
+.task-left {
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: #7c4dff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 12px;
+}
+
+.start-btn {
+  background: #7c4dff;
   border: none;
-  color: #022c22;
-  padding: 8px 14px;
-  border-radius: 999px;
-  font-weight: bold;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 20px;
   cursor: pointer;
 }
-button:disabled {
-  background: #334155;
-  color: #94a3b8;
+
+.nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1b1b25;
+  display: flex;
 }
-.footer {
+
+.nav div {
+  flex: 1;
   text-align: center;
-  font-size: 12px;
-  color: #64748b;
-  margin-top: 16px;
+  padding: 10px;
+  color: #aaa;
 }
 </style>
 </head>
+
 <body>
-<div class="app">
-  <div class="header">
-    <div class="title">BotArena</div>
-    <div id="username">@user</div>
-  </div>
 
-  <div class="card">
-    <div class="points" id="points">0</div>
-    <div style="text-align:center">POINTS</div>
-  </div>
+<div class="header">BotArena</div>
 
-  <div class="card">
-    <h3>Tasks</h3>
-    <div id="taskList">Loading...</div>
-  </div>
-
-  <div class="footer">Powered by BotArena</div>
+<div class="coupons">
+  <div class="coupon">🎟️<br>0</div>
+  <div class="coupon">🎟️<br>0</div>
+  <div class="coupon">🎟️<br>0</div>
+  <div class="coupon">🎟️<br>0</div>
 </div>
 
-<script>
-/* ===== CONFIG ===== */
-const SUPABASE_URL = "https://jbbgsqvlnlaiabzhrmfp.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_eld7FfHsQi48L9xS513QRQ_mi3iNmBQ";
+<div class="tabs">
+  <div class="tab active">Tasks</div>
+  <div class="tab">Partners</div>
+</div>
 
-const tg = window.Telegram.WebApp;
-tg.ready();
+<div class="task">
+  <div class="task-left">
+    <div class="icon">🚀</div>
+    <div>
+      <div>Launch BotArena</div>
+      <small>+10 AP</small>
+    </div>
+  </div>
+  <button class="start-btn">Start</button>
+</div>
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const telegramId = tg.initDataUnsafe?.user?.id || 0;
-const username = tg.initDataUnsafe?.user?.username || "guest";
-document.getElementById("username").innerText = "@" + username;
+<div class="task">
+  <div class="task-left">
+    <div class="icon">𝕏</div>
+    <div>
+      <div>Follow on X</div>
+      <small>+25 AP</small>
+    </div>
+  </div>
+  <button class="start-btn">Start</button>
+</div>
 
-/* ===== LOAD USER ===== */
-async function loadUser() {
-  const { data } = await supabase
-    .from("botarena")
-    .select("*")
-    .eq("telegram_id", telegramId)
-    .single();
+<div class="nav">
+  <div>Home</div>
+  <div>Quests</div>
+  <div>Wallet</div>
+  <div>Profile</div>
+</div>
 
-  if (!data) {
-    await supabase.from("botarena").insert({
-      telegram_id: telegramId,
-      username: username,
-      points: 0
-    });
-    document.getElementById("points").innerText = 0;
-  } else {
-    document.getElementById("points").innerText = data.points || 0;
-  }
-}
-
-/* ===== LOAD TASKS ===== */
-async function loadTasks() {
-  const list = document.getElementById("taskList");
-  list.innerHTML = "Loading...";
-
-  const { data: tasks, error } = await supabase
-    .from("tasks")
-    .select("*")
-    .eq("is_active", true);
-
-  if (error || !Array.isArray(tasks) || tasks.length === 0) {
-    list.innerHTML = "No tasks available";
-    return;
-  }
-
-  list.innerHTML = "";
-  for (const t of tasks) {
-    const row = document.createElement("div");
-    row.className = "task";
-    row.id = "task-" + t.id;
-
-    row.innerHTML = `
-      <div>
-        <div>${t.task_name}</div>
-        <small>+${t.REWARD} pts</small>
-      </div>
-      <button onclick="doTask(${t.id}, ${t.REWARD}, '${t.url}', this)">
-        Open Task
-      </button>
-    `;
-    list.appendChild(row);
-  }
-}
-
-/* ===== TASK ACTION ===== */
-async function doTask(taskId, reward, url, btn) {
-  if (url) window.open(url, "_blank");
-
-  // Tambahkan points
-  const { data: user } = await supabase
-    .from("botarena")
-    .select("points")
-    .eq("telegram_id", telegramId)
-    .single();
-
-  const newPoints = (user?.points || 0) + reward;
-
-  await supabase
-    .from("botarena")
-    .update({ points: newPoints })
-    .eq("telegram_id", telegramId);
-
-  document.getElementById("points").innerText = newPoints;
-
-  // Ganti tombol menjadi Claim
-  btn.innerText = "Claimed";
-  btn.disabled = true;
-}
-
-loadUser();
-loadTasks();
-</script>
 </body>
 </html>
